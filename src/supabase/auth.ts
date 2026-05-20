@@ -1,11 +1,29 @@
 import { supabase } from './client'
 
 export const auth = {
-  async sendMagicLink(email: string) {
-    const { error } = await supabase.auth.signInWithOtp({
+  async signUp(email: string, password: string, displayName: string) {
+    const { error } = await supabase.auth.signUp({
       email,
-      options: { shouldCreateUser: true },
+      password,
+      options: { data: { display_name: displayName } },
     })
+    if (error) throw error
+  },
+
+  async signIn(email: string, password: string) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+  },
+
+  async requestPasswordReset(email: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    })
+    if (error) throw error
+  },
+
+  async updatePassword(newPassword: string) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) throw error
   },
 
