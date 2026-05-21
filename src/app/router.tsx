@@ -2,6 +2,9 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
 import { AuthGuard } from './AuthGuard'
 import { LoginPage } from '../pages/Login/LoginPage'
+import { CadastroPage } from '../pages/Cadastro/CadastroPage'
+import { RecuperarSenhaPage } from '../pages/RecuperarSenha/RecuperarSenhaPage'
+import { RedefinirSenhaPage } from '../pages/RedefinirSenha/RedefinirSenhaPage'
 import { HojePage } from '../pages/Hoje/HojePage'
 import { FichasPage } from '../pages/Fichas/FichasPage'
 import { EditorFichaPage } from '../pages/Fichas/EditorFichaPage'
@@ -12,10 +15,10 @@ import { RelatorioPage } from '../pages/Relatorio/RelatorioPage'
 import { ConfiguracoesPage } from '../pages/Configuracoes/ConfiguracoesPage'
 
 export const router = createBrowserRouter([
-  {
-    path: '/login',
-    element: <LoginPage />,
-  },
+  { path: '/login', element: <LoginPage /> },
+  { path: '/cadastro', element: <CadastroPage /> },
+  { path: '/recuperar-senha', element: <RecuperarSenhaPage /> },
+  { path: '/redefinir-senha', element: <RedefinirSenhaPage /> },
   {
     path: '/',
     element: (
