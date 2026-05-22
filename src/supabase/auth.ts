@@ -1,13 +1,14 @@
 import { supabase } from './client'
 
 export const auth = {
-  async signUp(email: string, password: string, displayName: string) {
-    const { error } = await supabase.auth.signUp({
+  async signUp(email: string, password: string, displayName: string): Promise<'session' | 'confirm_email'> {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { display_name: displayName } },
     })
     if (error) throw error
+    return data.session ? 'session' : 'confirm_email'
   },
 
   async signIn(email: string, password: string) {

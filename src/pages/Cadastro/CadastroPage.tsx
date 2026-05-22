@@ -27,7 +27,7 @@ export function CadastroPage() {
   const [passwordTouched, setPasswordTouched] = useState(false)
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [success, setSuccess] = useState<'session' | 'confirm_email' | false>(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
@@ -58,8 +58,8 @@ export function CadastroPage() {
 
     setLoading(true)
     try {
-      await auth.signUp(email, password, displayName.trim())
-      setSuccess(true)
+      const result = await auth.signUp(email, password, displayName.trim())
+      setSuccess(result)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : ''
       setError(mapAuthError(message))
@@ -76,10 +76,21 @@ export function CadastroPage() {
         <>Já tem conta?{' '}<Link to="/login" className="text-accent font-medium">Entrar</Link></>
       }
     >
-      {success ? (
+      {success === 'session' ? (
         <div className="text-center space-y-2 py-4">
           <p className="text-success font-medium">Conta criada com sucesso!</p>
           <p className="text-ink-soft text-sm">Entrando...</p>
+        </div>
+      ) : success === 'confirm_email' ? (
+        <div className="space-y-3 py-4">
+          <p className="text-ink font-medium">Verifique seu e-mail</p>
+          <p className="text-ink-soft text-sm">
+            Enviamos um link de confirmação para <strong>{email}</strong>.
+            Toque no link para ativar sua conta e fazer login.
+          </p>
+          <Link to="/login" className="block">
+            <Button variant="secondary" className="w-full">Ir para login</Button>
+          </Link>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
