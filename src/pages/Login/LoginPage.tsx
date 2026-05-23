@@ -7,6 +7,9 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { PasswordInput } from '../../components/ui/PasswordInput'
 import { AuthScreen } from '../../components/auth/AuthScreen'
+import { logger } from '../../lib/logger'
+
+const log = logger.for('LoginPage')
 
 function mapAuthError(message: string): string {
   if (message.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.'
@@ -16,18 +19,31 @@ function mapAuthError(message: string): string {
 
 export function LoginPage() {
   const user = useAppStore(s => s.user)
+  const authReady = useAppStore(s => s.authReady)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
-  if (user) return <Navigate to="/" replace />
+  if (!authReady) {
+    return (
+      <div className="flex items-center justify-center min-h-dvh bg-bg">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (user) {
+    log.debug('usuário já autenticado — redirecionando para home')
+    return <Navigate to="/" replace />
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setFieldErrors({})
+    log.info('handleSubmit: tentativa de login', { email })
 
     const result = signInSchema.safeParse({ email, password })
     if (!result.success) {
@@ -36,6 +52,7 @@ export function LoginPage() {
         const field = issue.path[0] as string
         if (!errors[field]) errors[field] = issue.message
       }
+      log.warn('handleSubmit: validação falhou', errors)
       setFieldErrors(errors)
       return
     }
@@ -43,8 +60,11 @@ export function LoginPage() {
     setLoading(true)
     try {
       await auth.signIn(email, password)
+      log.info('handleSubmit: login bem-sucedido')
+      // Redirecionamento fica por conta do AuthGuard via onAuthStateChange
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : ''
+      log.error('handleSubmit: erro no login', err)
       setError(mapAuthError(message))
     } finally {
       setLoading(false)

@@ -8,6 +8,10 @@ interface AppState {
   user: User | null
   setUser: (user: User | null) => void
 
+  // true após a verificação inicial de sessão ser concluída
+  authReady: boolean
+  setAuthReady: (ready: boolean) => void
+
   activeSession: LocalWorkoutSession | null
   setActiveSession: (session: LocalWorkoutSession | null) => void
 
@@ -20,6 +24,9 @@ interface AppState {
 export const useAppStore = create<AppState>((set) => ({
   user: null,
   setUser: (user) => set({ user }),
+
+  authReady: false,
+  setAuthReady: (authReady) => set({ authReady }),
 
   activeSession: null,
   setActiveSession: (session) => set({ activeSession: session }),

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { auth } from '../../supabase/auth'
 import { signUpSchema } from '../../domain/rules'
 import { useAppStore } from '../../app/store'
@@ -7,8 +7,14 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { PasswordInput } from '../../components/ui/PasswordInput'
 import { AuthScreen } from '../../components/auth/AuthScreen'
+import { logger } from '../../lib/logger'
 
-function mapAuthError(message: string): string {
+const log = logger.for('CadastroPage')
+
+function mapAuthError(err: unknown): string {
+  const status = (err as Record<string, unknown>)?.status
+  const message = err instanceof Error ? err.message : ''
+  if (status === 429 || message.includes('over_email_send_rate_limit')) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'
   if (message.includes('User already registered')) return 'Este e-mail já está cadastrado. Faça login.'
   return 'Não foi possível criar a conta. Tente novamente.'
 }
@@ -21,6 +27,7 @@ function passwordHint(value: string, touched: boolean): { text: string; tone: 'm
 
 export function CadastroPage() {
   const user = useAppStore(s => s.user)
+  const navigate = useNavigate()
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -31,7 +38,10 @@ export function CadastroPage() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
-  if (user) return <Navigate to="/" replace />
+  if (user) {
+    log.debug('usuário já autenticado — redirecionando para home')
+    return <Navigate to="/" replace />
+  }
 
   const hint = passwordHint(password, passwordTouched)
 
@@ -39,6 +49,7 @@ export function CadastroPage() {
     e.preventDefault()
     setError(null)
     setFieldErrors({})
+    log.info('handleSubmit: formulário submetido', { email, displayName })
 
     const result = signUpSchema.safeParse({
       display_name: displayName,
@@ -52,17 +63,25 @@ export function CadastroPage() {
         const field = issue.path[0] as string
         if (!errors[field]) errors[field] = issue.message
       }
+      log.warn('handleSubmit: validação falhou', errors)
       setFieldErrors(errors)
       return
     }
 
     setLoading(true)
     try {
-      const result = await auth.signUp(email, password, displayName.trim())
-      setSuccess(result)
+      const outcome = await auth.signUp(email, password, displayName.trim())
+      log.info('handleSubmit: cadastro concluído', { outcome })
+      setSuccess(outcome)
+      if (outcome === 'session') {
+        // Supabase já criou a sessão; aguarda o AuthGuard propagar o user via
+        // onAuthStateChange antes de navegar, mas forçamos a navegação aqui
+        // para não depender do timing do store.
+        setTimeout(() => navigate('/', { replace: true }), 300)
+      }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : ''
-      setError(mapAuthError(message))
+      log.error('handleSubmit: erro no cadastro', err)
+      setError(mapAuthError(err))
     } finally {
       setLoading(false)
     }
