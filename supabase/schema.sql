@@ -45,14 +45,15 @@ create or replace trigger on_auth_user_created
 -- 2. workout_templates
 -- ============================================================
 create table if not exists workout_templates (
-  id          uuid primary key,
-  user_id     uuid not null references auth.users(id) on delete cascade,
-  name        text not null,
-  description text,
-  status      text not null default 'active' check (status in ('active', 'archived')),
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
-  deleted_at  timestamptz
+  id           uuid primary key,
+  user_id      uuid not null references auth.users(id) on delete cascade,
+  name         text not null,
+  description  text,
+  workout_type text not null default 'strength' check (workout_type in ('strength', 'cardio')),
+  status       text not null default 'active' check (status in ('active', 'archived')),
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  deleted_at   timestamptz
 );
 
 alter table workout_templates enable row level security;
@@ -110,6 +111,7 @@ create table if not exists workout_sessions (
   title        text not null,
   performed_at timestamptz not null default now(),
   status       text not null default 'in_progress' check (status in ('in_progress', 'completed', 'archived')),
+  workout_type text not null default 'strength' check (workout_type in ('strength', 'cardio')),
   notes        text,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
@@ -167,9 +169,10 @@ create table if not exists session_sets (
   session_id          uuid not null references workout_sessions(id) on delete cascade,
   session_exercise_id uuid not null references session_exercises(id) on delete cascade,
   set_index           int not null default 1,
-  reps                int not null,
+  reps                int not null default 0,
   weight              numeric(7,3) not null default 0,
   weight_unit         text not null default 'kg' check (weight_unit in ('kg', 'lb')),
+  duration_seconds    int,
   notes               text,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
@@ -191,3 +194,25 @@ create index if not exists idx_session_sets_session
 
 create index if not exists idx_session_sets_user_updated
   on session_sets(user_id, updated_at);
+
+
+-- ============================================================
+-- Migration: run this block if the tables already exist
+-- (safe to run even on a fresh schema — all statements are idempotent)
+-- ============================================================
+
+alter table workout_templates
+  add column if not exists workout_type text not null default 'strength'
+    check (workout_type in ('strength', 'cardio'));
+
+alter table workout_sessions
+  add column if not exists workout_type text not null default 'strength'
+    check (workout_type in ('strength', 'cardio'));
+
+alter table session_sets
+  add column if not exists duration_seconds int;
+
+-- reps was NOT NULL without a default in the original schema;
+-- make it safe for cardio rows where reps is irrelevant
+alter table session_sets
+  alter column reps set default 0;
