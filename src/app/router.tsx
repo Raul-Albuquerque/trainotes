@@ -10,6 +10,7 @@ import { FichasPage } from '../pages/Fichas/FichasPage'
 import { EditorFichaPage } from '../pages/Fichas/EditorFichaPage'
 import { IniciarTreinoPage } from '../pages/Treino/IniciarTreinoPage'
 import { TreinoEmAndamentoPage } from '../pages/Treino/TreinoEmAndamentoPage'
+import { EditarTreinoPage } from '../pages/Treino/EditarTreinoPage'
 import { HistoricoPage } from '../pages/Historico/HistoricoPage'
 import { RelatorioPage } from '../pages/Relatorio/RelatorioPage'
 import { ConfiguracoesPage } from '../pages/Configuracoes/ConfiguracoesPage'
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { path: 'fichas/:id/editar', element: <EditorFichaPage /> },
       { path: 'treino/iniciar', element: <IniciarTreinoPage /> },
       { path: 'treino/ativo', element: <TreinoEmAndamentoPage /> },
+      { path: 'treino/:id/editar', element: <EditarTreinoPage /> },
       { path: 'historico', element: <HistoricoPage /> },
       { path: 'relatorio', element: <RelatorioPage /> },
       { path: 'configuracoes', element: <ConfiguracoesPage /> },

@@ -1,20 +1,22 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Play, RefreshCw, AlertCircle, CheckCircle, Trash2, Pencil, Check, X } from 'lucide-react'
+import { Play, RefreshCw, AlertCircle, CheckCircle, Trash2, Plus, X, Dumbbell, Timer } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
+import { Input } from '../../components/ui/Input'
 import { useAppStore } from '../../app/store'
 import { sessionsRepo } from '../../db/repositories/sessions'
 import { formatDate } from '../../lib/utils'
 import { syncAll } from '../../sync/engine'
-import type { LocalWorkoutSession } from '../../domain/types'
+import type { LocalWorkoutSession, WorkoutType } from '../../domain/types'
 
 export function HojePage() {
   const navigate = useNavigate()
-  const { user, syncStatus, setSyncStatus, setLastSyncError } = useAppStore()
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [titleDraft, setTitleDraft] = useState('')
+  const { user, activeSession, setActiveSession, syncStatus, setSyncStatus, setLastSyncError } = useAppStore()
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [showFreeForm, setShowFreeForm] = useState(false)
+  const [freeTitle, setFreeTitle] = useState('')
+  const [freeType, setFreeType] = useState<WorkoutType>('strength')
 
   const recentSessions = useLiveQuery(
     () => user ? sessionsRepo.list(user.id, 20) : [],
@@ -39,20 +41,28 @@ export function HojePage() {
     }
   }
 
-  function startEdit(session: LocalWorkoutSession) {
-    setEditingId(session.id)
-    setTitleDraft(session.title)
-  }
-
-  async function saveEdit(id: string) {
-    if (!titleDraft.trim()) return
-    await sessionsRepo.update(id, { title: titleDraft.trim() })
-    setEditingId(null)
-  }
-
   async function handleDelete(id: string) {
     await sessionsRepo.softDelete(id)
     setConfirmDeleteId(null)
+    if (activeSession?.id === id) setActiveSession(null)
+  }
+
+  async function startFree(e: React.FormEvent) {
+    e.preventDefault()
+    if (!user || !freeTitle.trim()) return
+    const session = await sessionsRepo.createFree(user.id, freeTitle.trim(), freeType)
+    setActiveSession(session)
+    setShowFreeForm(false)
+    setFreeTitle('')
+    navigate('/treino/ativo')
+  }
+
+  function handleCardClick(session: LocalWorkoutSession) {
+    if (session.status === 'in_progress' && activeSession?.id === session.id) {
+      navigate('/treino/ativo')
+    } else {
+      navigate(`/treino/${session.id}/editar`)
+    }
   }
 
   const todayISO = new Date().toISOString().slice(0, 10)
@@ -82,10 +92,63 @@ export function HojePage() {
           </Button>
         </div>
       ) : (
-        <Button size="lg" className="w-full" onClick={() => navigate('/treino/iniciar')}>
-          <Play size={20} className="mr-2" />
-          Iniciar treino
-        </Button>
+        <div className="space-y-2">
+          <Button size="lg" className="w-full" onClick={() => navigate('/treino/iniciar')}>
+            <Play size={20} className="mr-2" />
+            Iniciar treino com ficha
+          </Button>
+
+          {showFreeForm ? (
+            <form onSubmit={startFree} className="bg-surface rounded-card p-4 space-y-3">
+              <p className="text-ink font-medium text-sm">Treino livre</p>
+              <Input
+                label="Nome do treino"
+                placeholder="Ex: Treino livre"
+                value={freeTitle}
+                onChange={e => setFreeTitle(e.target.value)}
+                autoFocus
+                required
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFreeType('strength')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-card border text-sm font-medium transition-colors ${
+                    freeType === 'strength'
+                      ? 'bg-accent text-white border-accent'
+                      : 'bg-bg text-ink-soft border-border'
+                  }`}
+                >
+                  <Dumbbell size={16} /> Musculação
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFreeType('cardio')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-card border text-sm font-medium transition-colors ${
+                    freeType === 'cardio'
+                      ? 'bg-accent text-white border-accent'
+                      : 'bg-bg text-ink-soft border-border'
+                  }`}
+                >
+                  <Timer size={16} /> Aeróbico
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1">Iniciar</Button>
+                <Button type="button" variant="secondary" onClick={() => { setShowFreeForm(false); setFreeTitle('') }}>
+                  <X size={16} />
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <button
+              onClick={() => setShowFreeForm(true)}
+              className="w-full flex items-center justify-center gap-2 py-2 text-ink-muted text-sm active:text-accent"
+            >
+              <Plus size={16} /> Treino livre
+            </button>
+          )}
+        </div>
       )}
 
       {todaySessions.length > 0 && (
@@ -95,13 +158,8 @@ export function HojePage() {
             <SessionRow
               key={s.id}
               session={s}
-              editingId={editingId}
-              titleDraft={titleDraft}
               confirmDeleteId={confirmDeleteId}
-              onTitleDraftChange={setTitleDraft}
-              onStartEdit={startEdit}
-              onSaveEdit={saveEdit}
-              onCancelEdit={() => setEditingId(null)}
+              onCardClick={handleCardClick}
               onConfirmDelete={setConfirmDeleteId}
               onDelete={handleDelete}
               onCancelDelete={() => setConfirmDeleteId(null)}
@@ -117,13 +175,8 @@ export function HojePage() {
             <SessionRow
               key={s.id}
               session={s}
-              editingId={editingId}
-              titleDraft={titleDraft}
               confirmDeleteId={confirmDeleteId}
-              onTitleDraftChange={setTitleDraft}
-              onStartEdit={startEdit}
-              onSaveEdit={saveEdit}
-              onCancelEdit={() => setEditingId(null)}
+              onCardClick={handleCardClick}
               onConfirmDelete={setConfirmDeleteId}
               onDelete={handleDelete}
               onCancelDelete={() => setConfirmDeleteId(null)}
@@ -141,30 +194,19 @@ export function HojePage() {
 
 function SessionRow({
   session,
-  editingId,
-  titleDraft,
   confirmDeleteId,
-  onTitleDraftChange,
-  onStartEdit,
-  onSaveEdit,
-  onCancelEdit,
+  onCardClick,
   onConfirmDelete,
   onDelete,
   onCancelDelete,
 }: {
   session: LocalWorkoutSession
-  editingId: string | null
-  titleDraft: string
   confirmDeleteId: string | null
-  onTitleDraftChange: (v: string) => void
-  onStartEdit: (s: LocalWorkoutSession) => void
-  onSaveEdit: (id: string) => void
-  onCancelEdit: () => void
+  onCardClick: (s: LocalWorkoutSession) => void
   onConfirmDelete: (id: string) => void
   onDelete: (id: string) => void
   onCancelDelete: () => void
 }) {
-  const isEditing = editingId === session.id
   const isConfirmingDelete = confirmDeleteId === session.id
   const dateLabel = session.performed_at?.slice(0, 10)
     ? new Date(session.performed_at.slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
@@ -180,24 +222,11 @@ function SessionRow({
     )
   }
 
-  if (isEditing) {
-    return (
-      <div className="bg-surface rounded-card p-3 flex items-center gap-2">
-        <input
-          autoFocus
-          value={titleDraft}
-          onChange={e => onTitleDraftChange(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(session.id); if (e.key === 'Escape') onCancelEdit() }}
-          className="flex-1 bg-bg border border-accent rounded-card px-2 py-1 text-ink text-sm focus:outline-none"
-        />
-        <button onClick={() => onSaveEdit(session.id)} className="p-1 text-accent"><Check size={16} /></button>
-        <button onClick={onCancelEdit} className="p-1 text-ink-muted"><X size={16} /></button>
-      </div>
-    )
-  }
-
   return (
-    <div className="bg-surface rounded-card p-3 flex items-center gap-3">
+    <div
+      className="bg-surface rounded-card p-3 flex items-center gap-3 active:opacity-80 cursor-pointer"
+      onClick={() => onCardClick(session)}
+    >
       <CheckCircle size={18} className={`flex-shrink-0 ${session.status === 'completed' ? 'text-success' : 'text-accent'}`} />
       <div className="flex-1 min-w-0">
         <p className="font-medium text-ink text-sm truncate">{session.title}</p>
@@ -205,10 +234,10 @@ function SessionRow({
           {dateLabel} · {session.status === 'completed' ? 'Concluído' : 'Em andamento'}
         </p>
       </div>
-      <button onClick={() => onStartEdit(session)} className="p-2 text-ink-muted active:text-accent flex-shrink-0">
-        <Pencil size={15} />
-      </button>
-      <button onClick={() => onConfirmDelete(session.id)} className="p-2 text-ink-muted active:text-danger flex-shrink-0">
+      <button
+        onClick={e => { e.stopPropagation(); onConfirmDelete(session.id) }}
+        className="p-2 text-ink-muted active:text-danger flex-shrink-0"
+      >
         <Trash2 size={15} />
       </button>
     </div>
