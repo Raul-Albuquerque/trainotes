@@ -1,5 +1,5 @@
 import { db } from '../dexie'
-import type { LocalWorkoutSession, LocalSessionExercise, LocalSessionSet, WorkoutTemplate, TemplateExercise } from '../../domain/types'
+import type { LocalWorkoutSession, LocalSessionExercise, LocalSessionSet, WorkoutTemplate, TemplateExercise, WorkoutType } from '../../domain/types'
 
 function now() { return Date.now() }
 function isoNow() { return new Date().toISOString() }
@@ -34,6 +34,7 @@ export const sessionsRepo = {
       title: template.name,
       performed_at: isoNow(),
       status: 'in_progress',
+      workout_type: template.workout_type ?? 'strength',
       notes: null,
       created_at: isoNow(),
       updated_at: isoNow(),
@@ -70,7 +71,7 @@ export const sessionsRepo = {
     return session
   },
 
-  async createFree(userId: string, title: string): Promise<LocalWorkoutSession> {
+  async createFree(userId: string, title: string, workoutType: WorkoutType = 'strength'): Promise<LocalWorkoutSession> {
     const session: LocalWorkoutSession = {
       id: crypto.randomUUID(),
       user_id: userId,
@@ -78,6 +79,7 @@ export const sessionsRepo = {
       title,
       performed_at: isoNow(),
       status: 'in_progress',
+      workout_type: workoutType,
       notes: null,
       created_at: isoNow(),
       updated_at: isoNow(),
@@ -101,7 +103,7 @@ export const sessionsRepo = {
     })
   },
 
-  async update(id: string, data: Partial<Pick<LocalWorkoutSession, 'title' | 'notes' | 'status' | 'performed_at'>>) {
+  async update(id: string, data: Partial<Pick<LocalWorkoutSession, 'title' | 'notes' | 'status' | 'performed_at' | 'workout_type'>>) {
     await db.workout_sessions.update(id, {
       ...data,
       updated_at: isoNow(),
@@ -175,7 +177,7 @@ export const sessionSetsRepo = {
       .toArray()
   },
 
-  async create(userId: string, sessionId: string, sessionExerciseId: string, setIndex: number, reps: number, weight: number, weightUnit: 'kg' | 'lb'): Promise<LocalSessionSet> {
+  async create(userId: string, sessionId: string, sessionExerciseId: string, setIndex: number, reps: number, weight: number, weightUnit: 'kg' | 'lb', durationSeconds: number | null = null): Promise<LocalSessionSet> {
     const record: LocalSessionSet = {
       id: crypto.randomUUID(),
       user_id: userId,
@@ -185,6 +187,7 @@ export const sessionSetsRepo = {
       reps,
       weight,
       weight_unit: weightUnit,
+      duration_seconds: durationSeconds,
       notes: null,
       created_at: isoNow(),
       updated_at: isoNow(),
@@ -199,7 +202,7 @@ export const sessionSetsRepo = {
     return record
   },
 
-  async update(id: string, data: Partial<Pick<LocalSessionSet, 'reps' | 'weight' | 'weight_unit' | 'notes'>>) {
+  async update(id: string, data: Partial<Pick<LocalSessionSet, 'reps' | 'weight' | 'weight_unit' | 'duration_seconds' | 'notes'>>) {
     await db.session_sets.update(id, {
       ...data,
       updated_at: isoNow(),

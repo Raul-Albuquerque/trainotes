@@ -26,6 +26,19 @@ export class TrainotesDB extends Dexie {
       session_exercises: 'id, user_id, session_id, order_index, updated_at, is_dirty, deleted_at',
       session_sets: 'id, user_id, session_id, session_exercise_id, set_index, updated_at, is_dirty, deleted_at',
     })
+    // v2: add workout_type to templates and sessions; duration_seconds to sets
+    this.version(2).stores({
+      profiles: 'id, email',
+      workout_templates: 'id, user_id, status, updated_at, is_dirty, deleted_at',
+      template_exercises: 'id, user_id, template_id, order_index, updated_at, is_dirty, deleted_at',
+      workout_sessions: 'id, user_id, template_id, status, performed_at, updated_at, is_dirty, deleted_at',
+      session_exercises: 'id, user_id, session_id, order_index, updated_at, is_dirty, deleted_at',
+      session_sets: 'id, user_id, session_id, session_exercise_id, set_index, updated_at, is_dirty, deleted_at',
+    }).upgrade(tx => {
+      tx.table('workout_templates').toCollection().modify(t => { if (!t.workout_type) t.workout_type = 'strength' })
+      tx.table('workout_sessions').toCollection().modify(s => { if (!s.workout_type) s.workout_type = 'strength' })
+      tx.table('session_sets').toCollection().modify(s => { if (s.duration_seconds === undefined) s.duration_seconds = null })
+    })
   }
 }
 

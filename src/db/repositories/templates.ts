@@ -16,12 +16,13 @@ export const templatesRepo = {
     return db.workout_templates.get(id)
   },
 
-  async create(userId: string, data: Pick<WorkoutTemplate, 'name' | 'description'>): Promise<LocalWorkoutTemplate> {
+  async create(userId: string, data: Pick<WorkoutTemplate, 'name' | 'description' | 'workout_type'>): Promise<LocalWorkoutTemplate> {
     const record: LocalWorkoutTemplate = {
       id: crypto.randomUUID(),
       user_id: userId,
       name: data.name,
       description: data.description,
+      workout_type: data.workout_type,
       status: 'active',
       created_at: isoNow(),
       updated_at: isoNow(),
@@ -36,7 +37,7 @@ export const templatesRepo = {
     return record
   },
 
-  async update(id: string, data: Partial<Pick<WorkoutTemplate, 'name' | 'description' | 'status'>>) {
+  async update(id: string, data: Partial<Pick<WorkoutTemplate, 'name' | 'description' | 'status' | 'workout_type'>>) {
     await db.workout_templates.update(id, {
       ...data,
       updated_at: isoNow(),

@@ -1,6 +1,7 @@
 export type WeightUnit = 'kg' | 'lb'
 export type TemplateStatus = 'active' | 'archived'
 export type SessionStatus = 'in_progress' | 'completed' | 'archived'
+export type WorkoutType = 'strength' | 'cardio'
 
 export interface Profile {
   id: string
@@ -16,6 +17,7 @@ export interface WorkoutTemplate {
   user_id: string
   name: string
   description: string | null
+  workout_type: WorkoutType
   status: TemplateStatus
   created_at: string
   updated_at: string
@@ -45,6 +47,7 @@ export interface WorkoutSession {
   title: string
   performed_at: string
   status: SessionStatus
+  workout_type: WorkoutType
   notes: string | null
   created_at: string
   updated_at: string
@@ -73,6 +76,7 @@ export interface SessionSet {
   reps: number
   weight: number
   weight_unit: WeightUnit
+  duration_seconds: number | null
   notes: string | null
   created_at: string
   updated_at: string
