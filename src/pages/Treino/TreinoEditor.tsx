@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { CheckCircle, Plus, ArrowLeft, Pencil, Check, X, Trash2, Calendar } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
+import { Input } from '../../components/ui/Input'
 import { sessionsRepo, sessionExercisesRepo, sessionSetsRepo } from '../../db/repositories/sessions'
 import type { LocalSessionSet, LocalSessionExercise, LocalWorkoutSession } from '../../domain/types'
 
@@ -18,6 +19,8 @@ export function TreinoEditor({ session, onFinish, backPath = '/' }: Props) {
   const [titleDraft, setTitleDraft] = useState('')
   const [editingDate, setEditingDate] = useState(false)
   const [dateDraft, setDateDraft] = useState('')
+  const [showAddExercise, setShowAddExercise] = useState(false)
+  const [newExerciseName, setNewExerciseName] = useState('')
 
   const liveSession = useLiveQuery(() => sessionsRepo.get(session.id), [session.id]) ?? session
 
@@ -25,6 +28,16 @@ export function TreinoEditor({ session, onFinish, backPath = '/' }: Props) {
     () => sessionExercisesRepo.listBySession(session.id),
     [session.id]
   )
+
+  async function handleAddExercise(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newExerciseName.trim()) return
+    const currentExercises = await sessionExercisesRepo.listBySession(liveSession.id)
+    const orderIndex = currentExercises.length
+    await sessionExercisesRepo.create(liveSession.user_id, liveSession.id, newExerciseName.trim(), orderIndex)
+    setNewExerciseName('')
+    setShowAddExercise(false)
+  }
 
   async function handleAddSet(exerciseId: string, lastSet?: LocalSessionSet) {
     const sets = await sessionSetsRepo.listByExercise(exerciseId)
@@ -150,6 +163,32 @@ export function TreinoEditor({ session, onFinish, backPath = '/' }: Props) {
             onAddSet={handleAddSet}
           />
         ))}
+
+        {showAddExercise ? (
+          <form onSubmit={handleAddExercise} className="bg-surface rounded-card p-4 space-y-3">
+            <Input
+              label="Nome do exercício"
+              placeholder={isCardio ? 'Ex: Corrida' : 'Ex: Supino reto'}
+              value={newExerciseName}
+              onChange={e => setNewExerciseName(e.target.value)}
+              autoFocus
+              required
+            />
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1">Adicionar</Button>
+              <Button type="button" variant="secondary" onClick={() => { setShowAddExercise(false); setNewExerciseName('') }}>
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <button
+            onClick={() => setShowAddExercise(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-card border border-dashed border-border text-ink-muted text-sm active:text-accent active:border-accent"
+          >
+            <Plus size={16} /> Adicionar exercício
+          </button>
+        )}
       </div>
     </div>
   )
