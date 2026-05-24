@@ -9,7 +9,7 @@ export function AppLayout() {
       </main>
       <nav className="fixed bottom-0 inset-x-0 bg-surface border-t border-border safe-bottom z-50">
         <div className="flex items-center justify-around h-14">
-          <NavItem to="/" icon={<Home size={22} />} label="Hoje" end />
+          <NavItem to="/" icon={<Home size={22} />} label="Treinos" end />
           <NavItem to="/fichas" icon={<ClipboardList size={22} />} label="Fichas" />
           <NavItem to="/historico" icon={<History size={22} />} label="Histórico" />
           <NavItem to="/relatorio" icon={<FileText size={22} />} label="Relatório" />

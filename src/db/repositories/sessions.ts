@@ -101,7 +101,7 @@ export const sessionsRepo = {
     })
   },
 
-  async update(id: string, data: Partial<Pick<LocalWorkoutSession, 'title' | 'notes' | 'status'>>) {
+  async update(id: string, data: Partial<Pick<LocalWorkoutSession, 'title' | 'notes' | 'status' | 'performed_at'>>) {
     await db.workout_sessions.update(id, {
       ...data,
       updated_at: isoNow(),
