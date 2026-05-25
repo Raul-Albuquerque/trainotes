@@ -1,3 +1,5 @@
+import logoBlack from '../../assets/logo-black.svg'
+
 interface AuthScreenProps {
   title: string
   subtitle?: string
@@ -8,7 +10,7 @@ interface AuthScreenProps {
 export function AuthScreen({ title, subtitle, children, footer }: AuthScreenProps) {
   return (
     <div className="min-h-dvh bg-bg flex flex-col items-center justify-center p-6 safe-top">
-      <img src="/logo-black.svg" alt="Trainotes" className="h-10 mb-8" />
+      <img src={logoBlack} alt="Trainotes" className="h-10 mb-8" />
 
       <div className="w-full max-w-sm">
         <div className="mb-6">

@@ -21,6 +21,16 @@ static_sites:
       - path: /manifest.webmanifest
         headers:
           Cache-Control: no-cache, no-store, must-revalidate
+      # Arquivos sem hash no nome que podem mudar entre deploys
+      - path: /logo-white.svg
+        headers:
+          Cache-Control: no-cache, no-store, must-revalidate
+      - path: /logo-black.svg
+        headers:
+          Cache-Control: no-cache, no-store, must-revalidate
+      - path: /favicon.svg
+        headers:
+          Cache-Control: no-cache, no-store, must-revalidate
       # Assets com hash no nome: imutáveis por 1 ano
       - path: /assets/*
         headers:
