@@ -1,0 +1,31 @@
+name: trainotes
+static_sites:
+  - name: trainotes
+    build_command: npm run build
+    output_dir: dist
+    index_document: index.html
+    error_document: index.html
+    routes:
+      - path: /
+    cors:
+      allow_origins:
+        - exact: "*"
+    headers:
+      # SW e index.html: nunca cacheados para garantir detecção imediata de update
+      - path: /sw.js
+        headers:
+          Cache-Control: no-cache, no-store, must-revalidate
+      - path: /index.html
+        headers:
+          Cache-Control: no-cache, no-store, must-revalidate
+      - path: /manifest.webmanifest
+        headers:
+          Cache-Control: no-cache, no-store, must-revalidate
+      # Assets com hash no nome: imutáveis por 1 ano
+      - path: /assets/*
+        headers:
+          Cache-Control: public, max-age=31536000, immutable
+      # Fontes: imutáveis por 1 ano
+      - path: /fonts/*
+        headers:
+          Cache-Control: public, max-age=31536000, immutable

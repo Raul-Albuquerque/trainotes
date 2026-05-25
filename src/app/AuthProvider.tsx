@@ -3,12 +3,14 @@ import { auth } from '../supabase/auth'
 import { useAppStore } from './store'
 import { startSyncLoop, stopSyncLoop } from '../sync/engine'
 import { logger } from '../lib/logger'
+import { useSwUpdate } from './useSwUpdate'
 
 const log = logger.for('AuthProvider')
 
 interface Props { children: React.ReactNode }
 
 export function AuthProvider({ children }: Props) {
+  useSwUpdate()
   const { setUser, setAuthReady } = useAppStore()
 
   useEffect(() => {
