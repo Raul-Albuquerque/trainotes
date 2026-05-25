@@ -37,6 +37,10 @@ export function EditorFichaPage() {
   const [repsMax, setRepsMax] = useState('12')
   const [targetDuration, setTargetDuration] = useState('30')
 
+  // template name edit
+  const [editingTemplateName, setEditingTemplateName] = useState(false)
+  const [templateNameDraft, setTemplateNameDraft] = useState('')
+
   // edit form
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -110,6 +114,12 @@ export function EditorFichaPage() {
     setEditingId(null)
   }
 
+  async function saveTemplateName() {
+    if (!id || !templateNameDraft.trim()) return
+    await templatesRepo.update(id, { name: templateNameDraft.trim() })
+    setEditingTemplateName(false)
+  }
+
   if (!template) return null
 
   const exerciseIds = exercises?.map(e => e.id) ?? []
@@ -117,13 +127,35 @@ export function EditorFichaPage() {
   return (
     <div className="p-4 space-y-4 safe-top">
       <header className="flex items-center gap-3 pt-2">
-        <button onClick={() => navigate('/fichas')} className="p-1 -ml-1">
+        <button onClick={() => navigate('/fichas')} className="p-1 -ml-1 flex-shrink-0">
           <ArrowLeft size={22} className="text-ink" />
         </button>
-        <div className="flex-1">
-          <h1 className="font-display text-xl text-ink">{template.name}</h1>
-          <p className="text-ink-muted text-xs">{isCardio ? 'Aeróbico' : 'Musculação'}</p>
-        </div>
+        {editingTemplateName ? (
+          <div className="flex items-center gap-2 flex-1">
+            <input
+              autoFocus
+              value={templateNameDraft}
+              onChange={e => setTemplateNameDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveTemplateName(); if (e.key === 'Escape') setEditingTemplateName(false) }}
+              className="flex-1 bg-bg border border-accent rounded-card px-2 py-1 text-ink font-display text-xl focus:outline-none"
+            />
+            <button onClick={saveTemplateName} className="p-1 text-accent flex-shrink-0"><Check size={18} /></button>
+            <button onClick={() => setEditingTemplateName(false)} className="p-1 text-ink-muted flex-shrink-0"><X size={18} /></button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
+              <h1 className="font-display text-xl text-ink truncate">{template.name}</h1>
+              <p className="text-ink-muted text-xs">{isCardio ? 'Aeróbico' : 'Musculação'}</p>
+            </div>
+            <button
+              onClick={() => { setTemplateNameDraft(template.name); setEditingTemplateName(true) }}
+              className="p-1 text-ink-muted flex-shrink-0"
+            >
+              <Pencil size={16} />
+            </button>
+          </div>
+        )}
       </header>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

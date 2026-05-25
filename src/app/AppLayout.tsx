@@ -4,10 +4,10 @@ import { Home, ClipboardList, History, FileText, Settings } from 'lucide-react'
 export function AppLayout() {
   return (
     <div className="flex flex-col min-h-dvh bg-bg">
-      <main className="flex-1 overflow-y-auto pb-20">
+      <main className="flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}>
         <Outlet />
       </main>
-      <nav className="fixed bottom-0 inset-x-0 bg-surface border-t border-border safe-bottom z-50">
+      <nav className="fixed bottom-0 inset-x-0 bg-surface border-t border-border z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex items-center justify-around h-14">
           <NavItem to="/" icon={<Home size={22} />} label="Treinos" end />
           <NavItem to="/fichas" icon={<ClipboardList size={22} />} label="Fichas" />
