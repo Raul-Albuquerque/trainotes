@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { CheckCircle, Plus, ArrowLeft, Pencil, Check, X, Trash2, Calendar } from 'lucide-react'
+import { CheckCircle, Plus, ArrowLeft, Pencil, Check, X, Trash2, Calendar, MessageSquare } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { sessionsRepo, sessionExercisesRepo, sessionSetsRepo } from '../../db/repositories/sessions'
@@ -207,15 +207,88 @@ function ExerciseCard({
   sessionId: string
   onAddSet: (id: string, last?: LocalSessionSet) => void
 }) {
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [showNotes, setShowNotes] = useState(!!exercise.notes)
+  const [notesDraft, setNotesDraft] = useState(exercise.notes ?? '')
+  const notesTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
+
   const sets = useLiveQuery(
     () => sessionSetsRepo.listByExercise(exercise.id),
     [exercise.id]
   )
   const lastSet = sets?.[sets.length - 1]
 
+  function startEditName() {
+    setNameDraft(exercise.name)
+    setEditingName(true)
+  }
+
+  async function saveName() {
+    if (!nameDraft.trim()) return
+    await sessionExercisesRepo.update(exercise.id, { name: nameDraft.trim() })
+    setEditingName(false)
+  }
+
+  async function handleDelete() {
+    await sessionExercisesRepo.softDelete(exercise.id)
+  }
+
+  function handleNotesChange(value: string) {
+    setNotesDraft(value)
+    clearTimeout(notesTimeout.current)
+    notesTimeout.current = setTimeout(() => {
+      sessionExercisesRepo.update(exercise.id, { notes: value || null })
+    }, 500)
+  }
+
+  function toggleNotes() {
+    if (showNotes && notesDraft) return
+    setShowNotes(v => !v)
+  }
+
   return (
     <div className="bg-surface rounded-card p-4 space-y-3">
-      <h3 className="font-medium text-ink">{exercise.name}</h3>
+      {editingName ? (
+        <div className="flex items-center gap-2">
+          <input
+            autoFocus
+            value={nameDraft}
+            onChange={e => setNameDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }}
+            className="flex-1 bg-bg border border-accent rounded-card px-2 py-1 text-ink font-medium focus:outline-none"
+          />
+          <button onClick={saveName} className="p-1 text-accent"><Check size={16} /></button>
+          <button onClick={() => setEditingName(false)} className="p-1 text-ink-muted"><X size={16} /></button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <h3 className="font-medium text-ink flex-1">{exercise.name}</h3>
+          <button
+            onClick={toggleNotes}
+            className={`p-1 ${showNotes || notesDraft ? 'text-accent' : 'text-ink-muted active:text-accent'}`}
+            title="Observações"
+          >
+            <MessageSquare size={14} />
+          </button>
+          <button onClick={startEditName} className="p-1 text-ink-muted active:text-accent">
+            <Pencil size={14} />
+          </button>
+          <button onClick={handleDelete} className="p-1 text-ink-muted active:text-danger">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
+      {showNotes && (
+        <textarea
+          autoFocus={!exercise.notes}
+          value={notesDraft}
+          onChange={e => handleNotesChange(e.target.value)}
+          placeholder="Observações sobre o exercício..."
+          rows={2}
+          className="w-full bg-bg border border-border rounded-card px-3 py-2 text-sm text-ink placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
+        />
+      )}
       <div className="space-y-2">
         {sets?.map(set => (
           <SetRow key={set.id} set={set} isCardio={isCardio} />

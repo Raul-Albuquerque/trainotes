@@ -152,6 +152,15 @@ export const sessionExercisesRepo = {
     return record
   },
 
+  async update(id: string, data: Partial<Pick<LocalSessionExercise, 'name' | 'notes'>>) {
+    await db.session_exercises.update(id, {
+      ...data,
+      is_dirty: 1,
+      updated_at: isoNow(),
+      local_updated_at: now(),
+    })
+  },
+
   async softDelete(id: string) {
     await db.session_exercises.update(id, {
       deleted_at: isoNow(),
