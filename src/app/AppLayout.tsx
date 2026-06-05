@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { Home, ClipboardList, History, FileText, Settings } from 'lucide-react'
+import { Home, ClipboardList, History, Activity, Settings } from 'lucide-react'
 
 export function AppLayout() {
   return (
@@ -12,7 +12,7 @@ export function AppLayout() {
           <NavItem to="/" icon={<Home size={22} />} label="Treinos" end />
           <NavItem to="/fichas" icon={<ClipboardList size={22} />} label="Fichas" />
           <NavItem to="/historico" icon={<History size={22} />} label="Histórico" />
-          <NavItem to="/relatorio" icon={<FileText size={22} />} label="Relatório" />
+          <NavItem to="/avaliacoes" icon={<Activity size={22} />} label="Avaliações" />
           <NavItem to="/configuracoes" icon={<Settings size={22} />} label="Config" />
         </div>
       </nav>

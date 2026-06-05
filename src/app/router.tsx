@@ -12,7 +12,7 @@ import { IniciarTreinoPage } from '../pages/Treino/IniciarTreinoPage'
 import { TreinoEmAndamentoPage } from '../pages/Treino/TreinoEmAndamentoPage'
 import { EditarTreinoPage } from '../pages/Treino/EditarTreinoPage'
 import { HistoricoPage } from '../pages/Historico/HistoricoPage'
-import { RelatorioPage } from '../pages/Relatorio/RelatorioPage'
+import { AvaliacoesPage } from '../pages/Avaliacoes/AvaliacoesPage'
 import { ConfiguracoesPage } from '../pages/Configuracoes/ConfiguracoesPage'
 
 export const router = createBrowserRouter([
@@ -35,8 +35,9 @@ export const router = createBrowserRouter([
       { path: 'treino/ativo', element: <TreinoEmAndamentoPage /> },
       { path: 'treino/:id/editar', element: <EditarTreinoPage /> },
       { path: 'historico', element: <HistoricoPage /> },
-      { path: 'relatorio', element: <RelatorioPage /> },
+      { path: 'avaliacoes', element: <AvaliacoesPage /> },
       { path: 'configuracoes', element: <ConfiguracoesPage /> },
+      { path: 'relatorio', element: <Navigate to="/configuracoes" replace /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

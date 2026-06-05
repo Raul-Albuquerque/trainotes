@@ -4,11 +4,14 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Play, RefreshCw, AlertCircle, CheckCircle, Trash2, Plus, X, Dumbbell, Timer } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
+import { ConfirmModal } from '../../components/ui/ConfirmModal'
 import { useAppStore } from '../../app/store'
 import { sessionsRepo } from '../../db/repositories/sessions'
 import { formatDate } from '../../lib/utils'
 import { syncAll } from '../../sync/engine'
 import type { LocalWorkoutSession, WorkoutType } from '../../domain/types'
+
+const RECENT_PAGE_SIZE = 4
 
 export function HojePage() {
   const navigate = useNavigate()
@@ -17,9 +20,10 @@ export function HojePage() {
   const [showFreeForm, setShowFreeForm] = useState(false)
   const [freeTitle, setFreeTitle] = useState('')
   const [freeType, setFreeType] = useState<WorkoutType>('strength')
+  const [recentLimit, setRecentLimit] = useState(RECENT_PAGE_SIZE)
 
   const recentSessions = useLiveQuery(
-    () => user ? sessionsRepo.list(user.id, 20) : [],
+    () => user ? sessionsRepo.list(user.id, 100) : [],
     [user?.id]
   )
 
@@ -67,7 +71,9 @@ export function HojePage() {
 
   const todayISO = new Date().toISOString().slice(0, 10)
   const todaySessions = recentSessions?.filter(s => s.performed_at.startsWith(todayISO)) ?? []
-  const olderSessions = recentSessions?.filter(s => !s.performed_at.startsWith(todayISO)) ?? []
+  const allOlderSessions = recentSessions?.filter(s => !s.performed_at.startsWith(todayISO)) ?? []
+  const olderSessions = allOlderSessions.slice(0, recentLimit)
+  const hasMore = allOlderSessions.length > recentLimit
 
   return (
     <div className="p-4 space-y-6 safe-top">
@@ -158,69 +164,62 @@ export function HojePage() {
             <SessionRow
               key={s.id}
               session={s}
-              confirmDeleteId={confirmDeleteId}
               onCardClick={handleCardClick}
-              onConfirmDelete={setConfirmDeleteId}
-              onDelete={handleDelete}
-              onCancelDelete={() => setConfirmDeleteId(null)}
+              onRequestDelete={setConfirmDeleteId}
             />
           ))}
         </section>
       )}
 
-      {olderSessions.length > 0 && (
+      {allOlderSessions.length > 0 && (
         <section className="space-y-2">
           <h2 className="text-ink-soft text-sm font-medium">Recentes</h2>
           {olderSessions.map(s => (
             <SessionRow
               key={s.id}
               session={s}
-              confirmDeleteId={confirmDeleteId}
               onCardClick={handleCardClick}
-              onConfirmDelete={setConfirmDeleteId}
-              onDelete={handleDelete}
-              onCancelDelete={() => setConfirmDeleteId(null)}
+              onRequestDelete={setConfirmDeleteId}
             />
           ))}
+          {hasMore && (
+            <button
+              onClick={() => setRecentLimit(l => l + RECENT_PAGE_SIZE)}
+              className="w-full py-2 text-accent text-sm font-medium active:opacity-70"
+            >
+              Ver mais ({allOlderSessions.length - recentLimit} restantes)
+            </button>
+          )}
         </section>
       )}
 
       {recentSessions?.length === 0 && !inProgress && (
         <p className="text-ink-muted text-sm text-center py-4">Nenhum treino registrado ainda.</p>
       )}
+
+      <ConfirmModal
+        open={confirmDeleteId !== null}
+        title="Apagar treino?"
+        description={confirmDeleteId ? `"${recentSessions?.find(s => s.id === confirmDeleteId)?.title ?? ''}" será removido permanentemente.` : undefined}
+        onConfirm={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   )
 }
 
 function SessionRow({
   session,
-  confirmDeleteId,
   onCardClick,
-  onConfirmDelete,
-  onDelete,
-  onCancelDelete,
+  onRequestDelete,
 }: {
   session: LocalWorkoutSession
-  confirmDeleteId: string | null
   onCardClick: (s: LocalWorkoutSession) => void
-  onConfirmDelete: (id: string) => void
-  onDelete: (id: string) => void
-  onCancelDelete: () => void
+  onRequestDelete: (id: string) => void
 }) {
-  const isConfirmingDelete = confirmDeleteId === session.id
   const dateLabel = session.performed_at?.slice(0, 10)
     ? new Date(session.performed_at.slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
     : ''
-
-  if (isConfirmingDelete) {
-    return (
-      <div className="bg-danger/10 border border-danger/30 rounded-card p-3 flex items-center gap-3">
-        <p className="flex-1 text-sm text-ink">Apagar <span className="font-medium">{session.title}</span>?</p>
-        <button onClick={() => onDelete(session.id)} className="px-3 py-1 bg-danger text-white text-sm rounded-card font-medium">Apagar</button>
-        <button onClick={onCancelDelete} className="p-1 text-ink-muted"><X size={16} /></button>
-      </div>
-    )
-  }
 
   return (
     <div
@@ -235,7 +234,7 @@ function SessionRow({
         </p>
       </div>
       <button
-        onClick={e => { e.stopPropagation(); onConfirmDelete(session.id) }}
+        onClick={e => { e.stopPropagation(); onRequestDelete(session.id) }}
         className="p-2 text-ink-muted active:text-danger flex-shrink-0"
       >
         <Trash2 size={15} />

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, ChevronRight, Trash2, X, Dumbbell, Timer } from 'lucide-react'
+import { Plus, ChevronRight, Trash2, Dumbbell, Timer } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Card } from '../../components/ui/Card'
+import { ConfirmModal } from '../../components/ui/ConfirmModal'
 import { useAppStore } from '../../app/store'
 import { templatesRepo } from '../../db/repositories/templates'
 import type { WorkoutType } from '../../domain/types'
@@ -89,40 +90,37 @@ export function FichasPage() {
       )}
 
       <div className="space-y-2">
-        {active.map(t => {
-          if (confirmDeleteId === t.id) {
-            return (
-              <div key={t.id} className="bg-danger/10 border border-danger/30 rounded-card p-3 flex items-center gap-3">
-                <p className="flex-1 text-sm text-ink">Apagar <span className="font-medium">{t.name}</span>?</p>
-                <button onClick={() => handleDelete(t.id)} className="px-3 py-1 bg-danger text-white text-sm rounded-card font-medium">Apagar</button>
-                <button onClick={() => setConfirmDeleteId(null)} className="p-1 text-ink-muted"><X size={16} /></button>
-              </div>
-            )
-          }
-          return (
-            <Card key={t.id} onClick={() => navigate(`/fichas/${t.id}/editar`)} className="flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                {t.workout_type === 'cardio'
-                  ? <Timer size={16} className="text-accent flex-shrink-0" />
-                  : <Dumbbell size={16} className="text-accent flex-shrink-0" />}
-                <span className="font-medium text-ink truncate">{t.name}</span>
-              </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <button
-                  onClick={e => { e.stopPropagation(); setConfirmDeleteId(t.id) }}
-                  className="p-2 text-ink-muted active:text-danger"
-                >
-                  <Trash2 size={16} />
-                </button>
-                <ChevronRight size={18} className="text-ink-muted" />
-              </div>
-            </Card>
-          )
-        })}
+        {active.map(t => (
+          <Card key={t.id} onClick={() => navigate(`/fichas/${t.id}/editar`)} className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {t.workout_type === 'cardio'
+                ? <Timer size={16} className="text-accent flex-shrink-0" />
+                : <Dumbbell size={16} className="text-accent flex-shrink-0" />}
+              <span className="font-medium text-ink truncate">{t.name}</span>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={e => { e.stopPropagation(); setConfirmDeleteId(t.id) }}
+                className="p-2 text-ink-muted active:text-danger"
+              >
+                <Trash2 size={16} />
+              </button>
+              <ChevronRight size={18} className="text-ink-muted" />
+            </div>
+          </Card>
+        ))}
         {active.length === 0 && (
           <p className="text-ink-muted text-sm text-center py-8">Nenhuma ficha criada ainda.</p>
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmDeleteId !== null}
+        title="Apagar ficha?"
+        description={confirmDeleteId ? `"${active.find(t => t.id === confirmDeleteId)?.name ?? ''}" e todos os seus exercícios serão removidos.` : undefined}
+        onConfirm={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   )
 }

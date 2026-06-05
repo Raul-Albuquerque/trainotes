@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { CheckCircle, Plus, ArrowLeft, Pencil, Check, X, Trash2, Calendar, MessageSquare } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
+import { ConfirmModal } from '../../components/ui/ConfirmModal'
 import { sessionsRepo, sessionExercisesRepo, sessionSetsRepo } from '../../db/repositories/sessions'
 import type { LocalSessionSet, LocalSessionExercise, LocalWorkoutSession } from '../../domain/types'
 
@@ -211,6 +212,7 @@ function ExerciseCard({
   const [nameDraft, setNameDraft] = useState('')
   const [showNotes, setShowNotes] = useState(!!exercise.notes)
   const [notesDraft, setNotesDraft] = useState(exercise.notes ?? '')
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const notesTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const sets = useLiveQuery(
@@ -230,10 +232,6 @@ function ExerciseCard({
     setEditingName(false)
   }
 
-  async function handleDelete() {
-    await sessionExercisesRepo.softDelete(exercise.id)
-  }
-
   function handleNotesChange(value: string) {
     setNotesDraft(value)
     clearTimeout(notesTimeout.current)
@@ -248,65 +246,75 @@ function ExerciseCard({
   }
 
   return (
-    <div className="bg-surface rounded-card p-4 space-y-3">
-      {editingName ? (
-        <div className="flex items-center gap-2">
-          <input
-            autoFocus
-            value={nameDraft}
-            onChange={e => setNameDraft(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }}
-            className="flex-1 bg-bg border border-accent rounded-card px-2 py-1 text-ink font-medium focus:outline-none"
+    <>
+      <div className="bg-surface rounded-card p-4 space-y-3">
+        {editingName ? (
+          <div className="flex items-center gap-2">
+            <input
+              autoFocus
+              value={nameDraft}
+              onChange={e => setNameDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }}
+              className="flex-1 bg-bg border border-accent rounded-card px-2 py-1 text-ink font-medium focus:outline-none"
+            />
+            <button onClick={saveName} className="p-1 text-accent"><Check size={16} /></button>
+            <button onClick={() => setEditingName(false)} className="p-1 text-ink-muted"><X size={16} /></button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium text-ink flex-1">{exercise.name}</h3>
+            <button
+              onClick={toggleNotes}
+              className={`p-1 ${showNotes || notesDraft ? 'text-accent' : 'text-ink-muted active:text-accent'}`}
+              title="Observações"
+            >
+              <MessageSquare size={14} />
+            </button>
+            <button onClick={startEditName} className="p-1 text-ink-muted active:text-accent">
+              <Pencil size={14} />
+            </button>
+            <button onClick={() => setConfirmDelete(true)} className="p-1 text-ink-muted active:text-danger">
+              <Trash2 size={14} />
+            </button>
+          </div>
+        )}
+        {showNotes && (
+          <textarea
+            autoFocus={!exercise.notes}
+            value={notesDraft}
+            onChange={e => handleNotesChange(e.target.value)}
+            placeholder="Observações sobre o exercício..."
+            rows={2}
+            className="w-full bg-bg border border-border rounded-card px-3 py-2 text-sm text-ink placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
-          <button onClick={saveName} className="p-1 text-accent"><Check size={16} /></button>
-          <button onClick={() => setEditingName(false)} className="p-1 text-ink-muted"><X size={16} /></button>
+        )}
+        <div className="space-y-2">
+          {sets?.map(set => (
+            <SetRow key={set.id} set={set} isCardio={isCardio} />
+          ))}
         </div>
-      ) : (
-        <div className="flex items-center gap-2">
-          <h3 className="font-medium text-ink flex-1">{exercise.name}</h3>
-          <button
-            onClick={toggleNotes}
-            className={`p-1 ${showNotes || notesDraft ? 'text-accent' : 'text-ink-muted active:text-accent'}`}
-            title="Observações"
-          >
-            <MessageSquare size={14} />
-          </button>
-          <button onClick={startEditName} className="p-1 text-ink-muted active:text-accent">
-            <Pencil size={14} />
-          </button>
-          <button onClick={handleDelete} className="p-1 text-ink-muted active:text-danger">
-            <Trash2 size={14} />
-          </button>
-        </div>
-      )}
-      {showNotes && (
-        <textarea
-          autoFocus={!exercise.notes}
-          value={notesDraft}
-          onChange={e => handleNotesChange(e.target.value)}
-          placeholder="Observações sobre o exercício..."
-          rows={2}
-          className="w-full bg-bg border border-border rounded-card px-3 py-2 text-sm text-ink placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
-        />
-      )}
-      <div className="space-y-2">
-        {sets?.map(set => (
-          <SetRow key={set.id} set={set} isCardio={isCardio} />
-        ))}
+        <button
+          onClick={() => onAddSet(exercise.id, lastSet)}
+          className="flex items-center gap-2 text-accent text-sm font-medium py-1"
+        >
+          <Plus size={16} /> Adicionar {isCardio ? 'intervalo' : 'série'}
+          {lastSet && !isCardio && (
+            <span className="text-ink-muted text-xs">({lastSet.reps}×{lastSet.weight}{lastSet.weight_unit})</span>
+          )}
+          {lastSet && isCardio && lastSet.duration_seconds != null && (
+            <span className="text-ink-muted text-xs">({formatDuration(lastSet.duration_seconds)})</span>
+          )}
+        </button>
       </div>
-      <button
-        onClick={() => onAddSet(exercise.id, lastSet)}
-        className="flex items-center gap-2 text-accent text-sm font-medium py-1"
-      >
-        <Plus size={16} /> Adicionar {isCardio ? 'intervalo' : 'série'}
-        {lastSet && !isCardio && (
-          <span className="text-ink-muted text-xs">({lastSet.reps}×{lastSet.weight}{lastSet.weight_unit})</span>
-        )}
-        {lastSet && isCardio && lastSet.duration_seconds != null && (
-          <span className="text-ink-muted text-xs">({formatDuration(lastSet.duration_seconds)})</span>
-        )}
-      </button>
-    </div>
+
+      <ConfirmModal
+        open={confirmDelete}
+        title="Apagar exercício?"
+        description={`"${exercise.name}" e todas as suas séries serão removidos.`}
+        onConfirm={() => sessionExercisesRepo.softDelete(exercise.id)}
+        onCancel={() => setConfirmDelete(false)}
+      />
+    </>
   )
 }
 
@@ -314,6 +322,7 @@ function SetRow({ set, isCardio }: { set: LocalSessionSet; isCardio: boolean }) 
   const [reps, setReps] = useState(String(set.reps))
   const [weight, setWeight] = useState(String(set.weight))
   const [duration, setDuration] = useState(set.duration_seconds != null ? String(set.duration_seconds) : '')
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const saveTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   function scheduleAutosave(newReps: string, newWeight: string, newDuration: string) {
@@ -330,56 +339,74 @@ function SetRow({ set, isCardio }: { set: LocalSessionSet; isCardio: boolean }) 
     }, 500)
   }
 
-  async function handleDelete() {
+  async function handleConfirmedDelete() {
     clearTimeout(saveTimeout.current)
     await sessionSetsRepo.softDelete(set.id)
   }
 
   if (isCardio) {
     return (
+      <>
+        <div className="flex items-center gap-2">
+          <span className="text-ink-muted text-sm w-5 text-right tabular-nums">{set.set_index}</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={duration}
+            onChange={e => { setDuration(e.target.value); scheduleAutosave(reps, weight, e.target.value) }}
+            className="w-24 h-11 text-center bg-bg border border-border rounded-card text-ink font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-accent/40"
+            placeholder="seg"
+          />
+          <span className="text-ink-muted text-xs flex-1">seg</span>
+          <button onClick={() => setConfirmDelete(true)} className="p-1.5 text-ink-muted active:text-danger">
+            <Trash2 size={14} />
+          </button>
+        </div>
+        <ConfirmModal
+          open={confirmDelete}
+          title={`Apagar série ${set.set_index}?`}
+          description="Esta série será removida permanentemente."
+          onConfirm={handleConfirmedDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      </>
+    )
+  }
+
+  return (
+    <>
       <div className="flex items-center gap-2">
         <span className="text-ink-muted text-sm w-5 text-right tabular-nums">{set.set_index}</span>
         <input
           type="text"
           inputMode="numeric"
-          value={duration}
-          onChange={e => { setDuration(e.target.value); scheduleAutosave(reps, weight, e.target.value) }}
-          className="w-24 h-11 text-center bg-bg border border-border rounded-card text-ink font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-accent/40"
-          placeholder="seg"
+          value={reps}
+          onChange={e => { setReps(e.target.value); scheduleAutosave(e.target.value, weight, duration) }}
+          className="w-14 h-11 text-center bg-bg border border-border rounded-card text-ink font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-accent/40"
+          placeholder="reps"
         />
-        <span className="text-ink-muted text-xs flex-1">seg</span>
-        <button onClick={handleDelete} className="p-1.5 text-ink-muted active:text-danger">
+        <span className="text-ink-muted text-xs">×</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={weight}
+          onChange={e => { setWeight(e.target.value); scheduleAutosave(reps, e.target.value, duration) }}
+          className="w-20 h-11 text-center bg-bg border border-border rounded-card text-ink font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-accent/40"
+          placeholder="kg"
+        />
+        <span className="text-ink-muted text-xs flex-1">{set.weight_unit}</span>
+        <button onClick={() => setConfirmDelete(true)} className="p-1.5 text-ink-muted active:text-danger">
           <Trash2 size={14} />
         </button>
       </div>
-    )
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-ink-muted text-sm w-5 text-right tabular-nums">{set.set_index}</span>
-      <input
-        type="text"
-        inputMode="numeric"
-        value={reps}
-        onChange={e => { setReps(e.target.value); scheduleAutosave(e.target.value, weight, duration) }}
-        className="w-14 h-11 text-center bg-bg border border-border rounded-card text-ink font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-accent/40"
-        placeholder="reps"
+      <ConfirmModal
+        open={confirmDelete}
+        title={`Apagar série ${set.set_index}?`}
+        description="Esta série será removida permanentemente."
+        onConfirm={handleConfirmedDelete}
+        onCancel={() => setConfirmDelete(false)}
       />
-      <span className="text-ink-muted text-xs">×</span>
-      <input
-        type="text"
-        inputMode="decimal"
-        value={weight}
-        onChange={e => { setWeight(e.target.value); scheduleAutosave(reps, e.target.value, duration) }}
-        className="w-20 h-11 text-center bg-bg border border-border rounded-card text-ink font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-accent/40"
-        placeholder="kg"
-      />
-      <span className="text-ink-muted text-xs flex-1">{set.weight_unit}</span>
-      <button onClick={handleDelete} className="p-1.5 text-ink-muted active:text-danger">
-        <Trash2 size={14} />
-      </button>
-    </div>
+    </>
   )
 }
 
