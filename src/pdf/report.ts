@@ -2,7 +2,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import type { LocalWorkoutSession } from '../domain/types'
 import { formatDate } from '../lib/utils'
 
-export async function generatePDF(sessions: LocalWorkoutSession[], userName: string) {
+export async function generatePDF(sessions: LocalWorkoutSession[], userName: string, periodLabel?: string) {
   const pdfDoc = await PDFDocument.create()
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
@@ -31,6 +31,7 @@ export async function generatePDF(sessions: LocalWorkoutSession[], userName: str
   drawText('Relatório de Treinos — Trainotes', margin, 16, true)
   drawText(`Usuário: ${userName}`, margin, 10)
   drawText(`Gerado em: ${formatDate(new Date().toISOString())}`, margin, 10)
+  if (periodLabel) drawText(`Período: ${periodLabel}`, margin, 10)
   drawText(`Total de treinos: ${sessions.length}`, margin, 10)
   y -= lineHeight
 

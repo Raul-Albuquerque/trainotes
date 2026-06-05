@@ -8,6 +8,7 @@ export interface Profile {
   email: string
   display_name: string | null
   default_weight_unit: WeightUnit
+  height_cm: number | null
   created_at: string
   updated_at: string
 }
@@ -83,6 +84,36 @@ export interface SessionSet {
   deleted_at: string | null
 }
 
+export interface PhysicalAssessment {
+  id: string
+  user_id: string
+  assessed_at: string
+  notes: string | null
+  // Weight & height
+  weight_kg: number | null
+  height_cm: number | null
+  // Circumferences (cm)
+  waist_cm: number | null
+  abdomen_cm: number | null
+  hip_cm: number | null
+  chest_cm: number | null
+  // Bilateral measurements (cm)
+  arm_relaxed_left_cm: number | null
+  arm_relaxed_right_cm: number | null
+  arm_flexed_left_cm: number | null
+  arm_flexed_right_cm: number | null
+  thigh_left_cm: number | null
+  thigh_right_cm: number | null
+  calf_left_cm: number | null
+  calf_right_cm: number | null
+  // Calculated (stored for historical consistency)
+  bmi: number | null
+  whr: number | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
 // Sync metadata fields added locally
 export interface SyncMeta {
   is_dirty: 0 | 1
@@ -97,3 +128,4 @@ export type LocalTemplateExercise = TemplateExercise & SyncMeta
 export type LocalWorkoutSession = WorkoutSession & SyncMeta
 export type LocalSessionExercise = SessionExercise & SyncMeta
 export type LocalSessionSet = SessionSet & SyncMeta
+export type LocalPhysicalAssessment = PhysicalAssessment & SyncMeta

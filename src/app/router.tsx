@@ -13,7 +13,13 @@ import { TreinoEmAndamentoPage } from '../pages/Treino/TreinoEmAndamentoPage'
 import { EditarTreinoPage } from '../pages/Treino/EditarTreinoPage'
 import { HistoricoPage } from '../pages/Historico/HistoricoPage'
 import { AvaliacoesPage } from '../pages/Avaliacoes/AvaliacoesPage'
+import { EditorAvaliacaoPage } from '../pages/Avaliacoes/EditorAvaliacaoPage'
 import { ConfiguracoesPage } from '../pages/Configuracoes/ConfiguracoesPage'
+import { PerfilPage } from '../pages/Configuracoes/PerfilPage'
+import { RelatorioPage } from '../pages/Configuracoes/RelatorioPage'
+import { PreferenciasPage } from '../pages/Configuracoes/PreferenciasPage'
+import { BackupPage } from '../pages/Configuracoes/BackupPage'
+import { SairPage } from '../pages/Configuracoes/SairPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -36,7 +42,14 @@ export const router = createBrowserRouter([
       { path: 'treino/:id/editar', element: <EditarTreinoPage /> },
       { path: 'historico', element: <HistoricoPage /> },
       { path: 'avaliacoes', element: <AvaliacoesPage /> },
+      { path: 'avaliacoes/nova', element: <EditorAvaliacaoPage /> },
+      { path: 'avaliacoes/:id/editar', element: <EditorAvaliacaoPage /> },
       { path: 'configuracoes', element: <ConfiguracoesPage /> },
+      { path: 'configuracoes/perfil', element: <PerfilPage /> },
+      { path: 'configuracoes/relatorio', element: <RelatorioPage /> },
+      { path: 'configuracoes/preferencias', element: <PreferenciasPage /> },
+      { path: 'configuracoes/backup', element: <BackupPage /> },
+      { path: 'configuracoes/sair', element: <SairPage /> },
       { path: 'relatorio', element: <Navigate to="/configuracoes" replace /> },
     ],
   },
