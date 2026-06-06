@@ -25,10 +25,6 @@ const C_GRAY_LIGHT= rgb(0.933, 0.933, 0.933)  // #eee
 const C_GRAY_BG   = rgb(0.961, 0.961, 0.961)  // #f5f5f3 (approx)
 const C_CHIP_BG   = rgb(0.941, 0.941, 0.933)  // #f0f0ee
 const C_CHIP_FG   = rgb(0.267, 0.267, 0.267)  // #444
-const C_BEST_BG   = rgb(0.882, 0.961, 0.933)  // #E1F5EE
-const C_BEST_FG   = rgb(0.031, 0.314, 0.255)  // #085041
-const C_BEST_LBL  = rgb(0.047, 0.420, 0.322)  // #0C6B52
-const C_BEST_DIV  = rgb(0.624, 0.882, 0.796)  // #9FE1CB
 
 type BadgeColors = { bg: RGB; fg: RGB }
 const BADGE_COLORS: Record<string, BadgeColors> = {
@@ -67,8 +63,6 @@ export async function generatePDF(
     name: string
     notes: string | null
     sets: ExSet[]
-    bestIdx: number
-    bestLabel: string
     volume: string
   }
   type SessionData = {
@@ -102,18 +96,10 @@ export async function generatePDF(
         .sort((a, b) => a.set_index - b.set_index)
         .map(s => ({ reps: s.reps, weight: s.weight, unit: s.weight_unit }))
 
-      let bestIdx = 0
-      let bestVol = -1
-      for (let i = 0; i < sets.length; i++) {
-        const v = sets[i].reps * sets[i].weight
-        if (v > bestVol) { bestVol = v; bestIdx = i }
-      }
-      const best = sets[bestIdx]
-      const bestLabel = best ? `${best.reps} rep × ${best.weight} ${weightUnit}` : '—'
       const totalVol = sets.reduce((acc, s) => acc + s.reps * s.weight, 0)
       const volume = totalVol > 0 ? `${totalVol.toLocaleString('pt-BR')} ${weightUnit}` : '—'
 
-      return { name: ex.name, notes: ex.notes, sets, bestIdx, bestLabel, volume }
+      return { name: ex.name, notes: ex.notes, sets, volume }
     })
 
     const isCardio = session.workout_type === 'cardio'
@@ -310,7 +296,7 @@ export async function generatePDF(
     cy: number,
     reps: number,
     weight: number,
-    isBest: boolean,
+    _isBest: boolean,
     padH = 7,
   ): number {
     const NUM_SIZE = 8
@@ -319,10 +305,10 @@ export async function generatePDF(
     const PAD_V = 4
     const GAP = 2
 
-    const bg     = isBest ? C_BEST_BG  : C_CHIP_BG
-    const numFg  = isBest ? C_BEST_FG  : C_BLACK
-    const lblFg  = isBest ? C_BEST_LBL : C_GRAY_TEXT
-    const divClr = isBest ? C_BEST_DIV : C_GRAY_LINE
+    const bg     = C_CHIP_BG
+    const numFg  = C_BLACK
+    const lblFg  = C_GRAY_TEXT
+    const divClr = C_GRAY_LINE
 
     const repsStr   = String(reps)
     const weightStr = String(weight)
@@ -478,6 +464,19 @@ export async function generatePDF(
       return
     }
 
+    // ── Session notes (força) ─────────────────────────────────────────────
+    if (session.notes) {
+      ensureSpace(12)
+      page.drawText(session.notes, {
+        x: ML,
+        y,
+        size: 8,
+        font,
+        color: C_GRAY_TEXT,
+      })
+      y -= 14
+    }
+
     if (exercises.length === 0) {
       page.drawText('(nenhum exercício registrado)', {
         x: ML, y, size: 8, font, color: C_GRAY_TEXT,
@@ -537,8 +536,7 @@ export async function generatePDF(
       let chipX = COL_SERIES
       for (let i = 0; i < ex.sets.length; i++) {
         const s = ex.sets[i]
-        const isBest = i === ex.bestIdx
-        const w = drawChipV2(page, chipX, chipY, s.reps, s.weight, isBest, padH)
+        const w = drawChipV2(page, chipX, chipY, s.reps, s.weight, false, padH)
         chipX += w + chipGap
       }
 

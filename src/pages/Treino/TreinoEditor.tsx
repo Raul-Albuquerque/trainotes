@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { CheckCircle, Plus, ArrowLeft, Pencil, Check, X, Trash2, Calendar, MessageSquare } from 'lucide-react'
+import { CheckCircle, Plus, ArrowLeft, Pencil, Check, X, Trash2, Calendar, MessageSquare, PlusCircle } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { ConfirmModal } from '../../components/ui/ConfirmModal'
@@ -22,6 +22,9 @@ export function TreinoEditor({ session, onFinish, backPath = '/' }: Props) {
   const [dateDraft, setDateDraft] = useState('')
   const [showAddExercise, setShowAddExercise] = useState(false)
   const [newExerciseName, setNewExerciseName] = useState('')
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [notesDraft, setNotesDraft] = useState(session.notes ?? '')
+  const [confirmDeleteNotes, setConfirmDeleteNotes] = useState(false)
 
   const liveSession = useLiveQuery(() => sessionsRepo.get(session.id), [session.id]) ?? session
 
@@ -85,6 +88,22 @@ export function TreinoEditor({ session, onFinish, backPath = '/' }: Props) {
     setEditingDate(false)
   }
 
+  function startEditNotes() {
+    setNotesDraft(liveSession.notes ?? '')
+    setEditingNotes(true)
+  }
+
+  async function saveNotes() {
+    await sessionsRepo.update(liveSession.id, { notes: notesDraft.trim() || null })
+    setEditingNotes(false)
+  }
+
+  async function deleteNotes() {
+    await sessionsRepo.update(liveSession.id, { notes: null })
+    setNotesDraft('')
+    setConfirmDeleteNotes(false)
+  }
+
   const isCardio = liveSession.workout_type === 'cardio'
 
   const displayDate = liveSession.performed_at?.slice(0, 10)
@@ -127,7 +146,7 @@ export function TreinoEditor({ session, onFinish, backPath = '/' }: Props) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 pl-8">
+        <div className="flex items-center gap-3 pl-8">
           {editingDate ? (
             <div className="flex items-center gap-2">
               <input
@@ -151,6 +170,56 @@ export function TreinoEditor({ session, onFinish, backPath = '/' }: Props) {
             </button>
           )}
         </div>
+
+        {editingNotes ? (
+          <div className="pl-8 space-y-2">
+            <textarea
+              autoFocus
+              value={notesDraft}
+              onChange={e => setNotesDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') setEditingNotes(false) }}
+              placeholder="Observações do treino..."
+              rows={2}
+              className="w-full bg-bg border border-accent rounded-card px-3 py-2 text-sm text-ink placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+            <div className="flex gap-2">
+              <button onClick={saveNotes} className="flex items-center gap-1 text-accent text-sm font-medium">
+                <Check size={14} /> Salvar
+              </button>
+              <button onClick={() => setEditingNotes(false)} className="flex items-center gap-1 text-ink-muted text-sm">
+                <X size={14} /> Cancelar
+              </button>
+            </div>
+          </div>
+        ) : liveSession.notes ? (
+          <div className="pl-8 flex items-start gap-2">
+            <MessageSquare size={13} className="text-accent mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-ink-soft flex-1 whitespace-pre-wrap">{liveSession.notes}</p>
+            <button onClick={startEditNotes} className="p-1 text-ink-muted active:text-accent flex-shrink-0">
+              <Pencil size={13} />
+            </button>
+            <button onClick={() => setConfirmDeleteNotes(true)} className="p-1 text-ink-muted active:text-danger flex-shrink-0">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        ) : (
+          <div className="pl-8">
+            <button
+              onClick={startEditNotes}
+              className="flex items-center gap-1.5 text-ink-muted text-sm active:text-accent"
+            >
+              <PlusCircle size={13} /> Adicionar observação
+            </button>
+          </div>
+        )}
+
+        <ConfirmModal
+          open={confirmDeleteNotes}
+          title="Apagar observação?"
+          description="A observação deste treino será removida."
+          onConfirm={deleteNotes}
+          onCancel={() => setConfirmDeleteNotes(false)}
+        />
       </header>
 
       <div className="space-y-4">
@@ -210,10 +279,7 @@ function ExerciseCard({
 }) {
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
-  const [showNotes, setShowNotes] = useState(!!exercise.notes)
-  const [notesDraft, setNotesDraft] = useState(exercise.notes ?? '')
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const notesTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const sets = useLiveQuery(
     () => sessionSetsRepo.listByExercise(exercise.id),
@@ -230,19 +296,6 @@ function ExerciseCard({
     if (!nameDraft.trim()) return
     await sessionExercisesRepo.update(exercise.id, { name: nameDraft.trim() })
     setEditingName(false)
-  }
-
-  function handleNotesChange(value: string) {
-    setNotesDraft(value)
-    clearTimeout(notesTimeout.current)
-    notesTimeout.current = setTimeout(() => {
-      sessionExercisesRepo.update(exercise.id, { notes: value || null })
-    }, 500)
-  }
-
-  function toggleNotes() {
-    if (showNotes && notesDraft) return
-    setShowNotes(v => !v)
   }
 
   return (
@@ -263,13 +316,6 @@ function ExerciseCard({
         ) : (
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-ink flex-1">{exercise.name}</h3>
-            <button
-              onClick={toggleNotes}
-              className={`p-1 ${showNotes || notesDraft ? 'text-accent' : 'text-ink-muted active:text-accent'}`}
-              title="Observações"
-            >
-              <MessageSquare size={14} />
-            </button>
             <button onClick={startEditName} className="p-1 text-ink-muted active:text-accent">
               <Pencil size={14} />
             </button>
@@ -277,16 +323,6 @@ function ExerciseCard({
               <Trash2 size={14} />
             </button>
           </div>
-        )}
-        {showNotes && (
-          <textarea
-            autoFocus={!exercise.notes}
-            value={notesDraft}
-            onChange={e => handleNotesChange(e.target.value)}
-            placeholder="Observações sobre o exercício..."
-            rows={2}
-            className="w-full bg-bg border border-border rounded-card px-3 py-2 text-sm text-ink placeholder:text-ink-muted resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
-          />
         )}
         <div className="space-y-2">
           {sets?.map(set => (
