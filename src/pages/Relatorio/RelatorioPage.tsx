@@ -3,10 +3,11 @@ import { FileText } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { useAppStore } from '../../app/store'
 import { sessionsRepo } from '../../db/repositories/sessions'
+import { profilesRepo } from '../../db/repositories/profiles'
 import { generatePDF } from '../../pdf/report'
 
 export function RelatorioPage() {
-  const { user } = useAppStore()
+  const { user, weightUnit } = useAppStore()
   const [loading, setLoading] = useState(false)
   const [period, setPeriod] = useState('month')
 
@@ -14,9 +15,27 @@ export function RelatorioPage() {
     if (!user) return
     setLoading(true)
     try {
-      const sessions = await sessionsRepo.list(user.id, 200)
-      const completed = sessions.filter(s => s.status === 'completed')
-      await generatePDF(completed, user.email ?? 'Usuário')
+      const sessions = await sessionsRepo.list(user.id, 500)
+      const now = new Date()
+      let cutoff: Date | null = null
+      if (period === 'month') {
+        cutoff = new Date(now.getFullYear(), now.getMonth(), 1)
+      } else if (period === '3months') {
+        cutoff = new Date(now.getFullYear(), now.getMonth() - 2, 1)
+      }
+      const filtered = sessions.filter(s => {
+        if (s.status !== 'completed') return false
+        if (cutoff && new Date(s.performed_at) < cutoff) return false
+        return true
+      })
+      const labels: Record<string, string> = {
+        month: 'Este mês',
+        '3months': 'Últimos 3 meses',
+        all: 'Todos os treinos',
+      }
+      const profile = await profilesRepo.get(user.id)
+      const displayName = profile?.display_name ?? user.user_metadata?.display_name ?? user.email ?? 'Usuário'
+      await generatePDF(filtered, displayName, labels[period], weightUnit)
     } catch (e) {
       console.error(e)
     } finally {
